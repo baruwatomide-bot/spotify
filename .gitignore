@@ -4,6 +4,7 @@ venv/
 .cache
 2021/
 2022/
+2025/
 coachella_artists/
 scrape_spotify.py
 # spotify_history.py
