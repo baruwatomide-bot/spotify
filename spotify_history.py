@@ -64,65 +64,69 @@ def main():
     st.title(":material/scuba_diving: Spotify Dive Report")
     st.markdown("Upload your streaming history to visualize your trends, discover top artists, and analyze your listening habits. *Created by [halocline](https://open.spotify.com/artist/5ofIlDx8lax1NOi2stXaTn).*")
     
-    with st.expander(":material/info:  How to get your extended history", expanded=False):
-        st.markdown("""
-        To get your full listening history (not just the last year):
-        1. Go to your **[Spotify Account Privacy](https://www.spotify.com/us/account/privacy/)** page.
-        2. Scroll down to the **Download your data** section.
-        3. **Crucial:** Look for the box labeled **"Extended streaming history"** and check it. (Do not just click "Request data" at the bottom without checking this).
-        4. Spotify will send you an email to confirm. The data can take up to 30 days to arrive, but often comes sooner.
-        5. Once downloaded, you'll receive a ZIP file. Extract it and look for files ending in `.json` (e.g., `Streaming_History_Audio_2020-2021.json`). Upload those here!
-        """)
-    
-    # --- Top Controls (Side by Side) ---
-    c1, c2 = st.columns([1, 1])
-    
-    with c1:
-        uploaded_files = st.file_uploader(
-            "Upload `StreamingHistory` files", type="json", accept_multiple_files=True
-        )
+    # --- Top Controls (Framed) ---
+    with st.container(border=True):
+        st.subheader(":material/settings: Report Settings")
         
-    with c2:
-        # Date range logic requires data first, so we use a placeholder or default? 
-        # Actually, we need data to know the min/max date.
-        # We can't render the final date picker until we load data.
-        # But we can render the placeholder validation afterward.
-        pass # Will render date picker after data load
-    
-    # --- Data Loading ---
-    if not uploaded_files:
-        raw_df = load_data(data_dir="example_data_2")
-    else:
-        raw_df = load_data(uploaded_files=uploaded_files)
-
-    if raw_df.empty:
-        st.warning("Upload data to generate your report.")
-        st.stop()
+        c1, c2 = st.columns([1, 1])
         
-    # Process Data
-    df = process_data(raw_df)
+        with c1:
+            st.markdown("**1. Upload Data**")
+            uploaded_files = st.file_uploader(
+                "Select your `StreamingHistory` JSON files", 
+                type="json", 
+                accept_multiple_files=True,
+                label_visibility="collapsed"
+            )
+            
+        with st.expander(":material/info: How to get extended history", expanded=False):
+            st.markdown("""
+            1. Go to **[Spotify Privacy](https://www.spotify.com/us/account/privacy/)**, scroll to **Download your data**.
+            2. Check **"Extended streaming history"**.
+            3. Wait for email (up to 30 days).
+            4. Upload the `.json` files here.
+            """)
+            
+        with c2:
+            st.markdown("**2. Filter Dates**")
+            
+            # --- Data Loading ---
+            if not uploaded_files:
+                raw_df = load_data(data_dir="example_data_2")
+            else:
+                raw_df = load_data(uploaded_files=uploaded_files)
 
-    min_date = df["date"].min()
-    max_date = df["date"].max()
-    
-    # Default to past year (365 days)
-    default_start = max_date - timedelta(days=365)
-    if default_start < min_date:
-        default_start = min_date
-    
-    # Render Date Picker in the second column now that we have dates
-    with c2:
-        selected_dates = st.date_input(
-            "Filter Date Range",
-            value=(default_start, max_date),
-            min_value=min_date,
-            max_value=max_date,
-            help="Filter the analysis to a specific time period."
-        )
+            if raw_df.empty:
+                st.warning("Upload data to generate your report.")
+                st.stop()
+                
+            # Process Data
+            df = process_data(raw_df)
 
-    # Handle case where user selects only one date so far
-    if len(selected_dates) != 2:
-        st.warning("Please select a start and end date.")
+            min_date = df["date"].min()
+            max_date = df["date"].max()
+            
+            # Date Range Selector (Radio Buttons Only)
+            range_option = st.radio(
+                "Filter Date Range",
+                ["All Time", "Past Year", "Past 2 Years"],
+                index=1, # Default to Past Year
+                horizontal=True,
+                label_visibility="collapsed"
+            )
+            
+            if range_option == "All Time":
+                start_date = min_date
+            elif range_option == "Past Year":
+                start_date = max(min_date, max_date - timedelta(days=365))
+            elif range_option == "Past 2 Years":
+                start_date = max(min_date, max_date - timedelta(days=730))
+            
+            end_date = max_date
+            selected_dates = (start_date, end_date)
+
+    # Validate (just in case)
+    if not selected_dates:
         st.stop()
         
     start_date, end_date = selected_dates

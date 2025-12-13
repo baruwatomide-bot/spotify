@@ -245,7 +245,7 @@ def chart_hourly_activity(df: pd.DataFrame) -> alt.Chart:
     # Ensure correct sorting of hours 0-23
     chart = (
         alt.Chart(df)
-        .mark_bar()
+        .mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4)
         .encode(
             x=alt.X("hour_label:N", title="Hour of Day", sort=alt.EncodingSortField(field="time", order="ascending"), axis=alt.Axis(labelAngle=0)),
             y=alt.Y("Count:Q", title="Songs Played"),
